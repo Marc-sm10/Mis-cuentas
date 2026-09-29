@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control de Cuentas y Rendición de Débitos</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              900: '#14532d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1f2937;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #374151;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #4b5563;
+    }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen flex flex-col font-sans antialiased">
+
+  <!-- TOP BAR / HEADER -->
+  <header class="bg-gray-900 border-b border-gray-800 sticky top-0 z-30 shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <button id="btnBackToHome" onclick="navigateToHome()" class="hidden text-gray-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-gray-800">
+          <i class="fa-solid fa-arrow-left text-xl"></i>
+        </button>
+        <div class="flex items-center space-x-2">
+          <div class="p-2 bg-brand-600/20 text-brand-500 rounded-lg">
+            <i class="fa-solid fa-wallet text-xl"></i>
+          </div>
+          <div>
+            <h1 id="appTitle" contenteditable="true" onblur="saveHeaderTitles()" class="text-lg font-bold text-white leading-tight focus:outline-none focus:ring-1 focus:ring-brand-500 rounded px-1">Mi Libro Contable</h1>
+            <p id="appSubtitle" contenteditable="true" onblur="saveHeaderTitles()" class="text-xs text-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-500 rounded px-1">Registro local y rendición de cuentas</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons Header -->
+      <div class="flex items-center space-x-2">
+        <button onclick="togglePrivacy()" id="btnTogglePrivacy" title="Ocultar/Mostrar saldos" class="p-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded-xl transition border border-gray-700">
+          <i id="privacyIcon" class="fa-solid fa-eye"></i>
+        </button>
+        <button onclick="openBackupModal()" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs sm:text-sm font-medium rounded-xl transition border border-gray-700 flex items-center space-x-2">
+          <i class="fa-solid fa-file-export"></i>
+          <span class="hidden sm:inline">Respaldar / Exportar</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- DYNAMIC TOTAL BALANCES BANNER (Top Cards) -->
+    <section id="globalSummarySection" class="mb-6">
+      <div id="dynamicTotalsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <!-- Generado dinámicamente según las monedas registradas -->
+      </div>
+    </section>
+
+    <!-- VIEW 1: ACCOUNTS DASHBOARD (GRID DE CUADROS) -->
+    <section id="dashboardView" class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-semibold text-white">Tus Cuentas / Fondos</h2>
+          <p class="text-xs text-gray-400">Selecciona un cuadro para ingresar y gestionar sus débitos</p>
+        </div>
+        <button onclick="openAccountModal()" class="w-full sm:w-auto px-4 py-2.5 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-xl transition shadow-lg shadow-brand-600/20 flex items-center justify-center space-x-2">
+          <i class="fa-solid fa-plus"></i>
+          <span>Agregar Nueva Cuenta</span>
+        </button>
+      </div>
+
+      <!-- ACCOUNTS GRID -->
+      <div id="accountsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Se llena con JS -->
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div id="emptyAccountsState" class="hidden text-center py-16 px-4 bg-gray-900/50 border border-dashed border-gray-800 rounded-2xl">
+        <div class="w-16 h-16 mx-auto mb-4 bg-gray-800/80 rounded-full flex items-center justify-center text-gray-500 text-2xl">
+          <i class="fa-solid fa-folder-plus"></i>
+        </div>
+        <h3 class="text-base font-medium text-gray-300 mb-1">No tienes cuentas registradas</h3>
+        <p class="text-xs text-gray-500 mb-4 max-w-sm mx-auto">Crea una cuenta para comenzar a debitar dinero y registrar tus gastos de forma organizada.</p>
+        <button onclick="openAccountModal()" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium rounded-lg transition">
+          Crear mi primera cuenta
+        </button>
+      </div>
+    </section>
+
+    <!-- VIEW 2: ACCOUNT DETAIL & TRANSACTIONS -->
+    <section id="accountDetailView" class="hidden space-y-6">
+      <!-- HEADER DETALLE CUENTA -->
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 shadow-xl">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-800">
+          <div>
+            <div class="flex items-center space-x-2 mb-1">
+              <span id="detailCurrencyBadge" class="px-2 py-0.5 text-xs font-bold bg-brand-500/10 text-brand-400 border border-brand-500/20 rounded">GTQ - Q</span>
+              <span id="detailCreatedDate" class="text-xs text-gray-400 flex items-center">
+                <i class="fa-regular fa-calendar-alt mr-1"></i> Creada: -
+              </span>
+            </div>
+            <h2 id="detailTitle" contenteditable="true" onblur="updateCurrentAccountTitle()" class="text-2xl font-bold text-white focus:outline-none focus:ring-1 focus:ring-brand-500 rounded px-1">Nombre Cuenta</h2>
+            <p id="detailNote" contenteditable="true" onblur="updateCurrentAccountNote()" class="text-xs text-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-500 rounded px-1 mt-1">Notas adicionales de la cuenta...</p>
+          </div>
+
+          <!-- Acciones Rápidas -->
+          <div class="flex items-center space-x-2">
+            <button onclick="editCurrentAccount()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-medium rounded-lg transition border border-gray-700">
+              <i class="fa-solid fa-pen mr-1"></i> Editar
+            </button>
+            <button onclick="deleteCurrentAccount()" class="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-medium rounded-lg transition">
+              <i class="fa-solid fa-trash mr-1"></i> Eliminar Cuenta
+            </button>
+          </div>
+        </div>
+
+        <!-- RESUMEN DE SALDO DE ESTA CUENTA -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+          <div class="bg-gray-950/60 p-3.5 rounded-xl border border-gray-800">
+            <span class="text-xs font-medium text-gray-400 block mb-0.5">Monto Inicial</span>
+            <span id="detailInitialBalance" class="text-lg font-bold text-gray-200">Q 0.00</span>
+          </div>
+          <div class="bg-gray-950/60 p-3.5 rounded-xl border border-gray-800">
+            <span class="text-xs font-medium text-gray-400 block mb-0.5">Total Debitado (-)</span>
+            <span id="detailTotalDebits" class="text-lg font-bold text-rose-400">Q 0.00</span>
+          </div>
+          <div class="bg-brand-950/20 p-3.5 rounded-xl border border-brand-500/20">
+            <span class="text-xs font-medium text-brand-300 block mb-0.5">Saldo Actual Disponible</span>
+            <span id="detailCurrentBalance" class="text-xl font-extrabold text-brand-400">Q 0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTONES RÁPIDOS DE MOVIMIENTO (+ / -) -->
+      <div class="flex items-center space-x-3">
+        <button onclick="openTransactionModal('DEBIT')" class="flex-1 py-3 bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-xl shadow-lg shadow-rose-600/20 transition flex items-center justify-center space-x-2">
+          <div class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+            <i class="fa-solid fa-minus text-xs"></i>
+          </div>
+          <span>Debitar / Registrar Gasto (-)</span>
+        </button>
+
+        <button onclick="openTransactionModal('CREDIT')" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow-lg shadow-emerald-600/20 transition flex items-center justify-center space-x-2">
+          <div class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+            <i class="fa-solid fa-plus text-xs"></i>
+          </div>
+          <span>Acreditar / Ingreso (+)</span>
+        </button>
+      </div>
+
+      <!-- HISTORIAL Y RENDICIÓN DE DEBITOS -->
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <h3 class="text-base font-semibold text-white flex items-center">
+            <i class="fa-solid fa-list-check mr-2 text-brand-400"></i> Historial de Movimientos / Rendición
+          </h3>
+          <div class="flex items-center space-x-2">
+            <input type="text" id="txSearchInput" oninput="renderTransactions()" placeholder="Buscar concepto o recibo..." class="bg-gray-950 border border-gray-800 text-xs rounded-xl px-3 py-2 text-gray-200 focus:outline-none focus:border-brand-500 w-full sm:w-48">
+            <button onclick="exportAccountToCSV()" title="Exportar esta cuenta a CSV" class="p-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl transition border border-gray-700">
+              <i class="fa-solid fa-file-excel text-emerald-400"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- TABLA DE MOVIMIENTOS -->
+        <div class="overflow-x-auto rounded-xl border border-gray-800">
+          <table class="w-full text-left text-xs text-gray-300">
+            <thead class="bg-gray-950 text-gray-400 uppercase font-medium border-b border-gray-800">
+              <tr>
+                <th class="px-4 py-3">Tipo</th>
+                <th class="px-4 py-3">Fecha</th>
+                <th class="px-4 py-3">Concepto / Motivo</th>
+                <th class="px-4 py-3">Recibo / Comprobante</th>
+                <th class="px-4 py-3 text-right">Monto</th>
+                <th class="px-4 py-3 text-center">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="transactionsTableBody" class="divide-y divide-gray-800/60 bg-gray-900/40">
+              <!-- JS Injects Rows -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- TABLA VACÍA -->
+        <div id="emptyTransactionsState" class="hidden text-center py-10">
+          <i class="fa-solid fa-receipt text-3xl text-gray-600 mb-2"></i>
+          <p class="text-xs text-gray-400">No hay movimientos o débitos registrados en esta cuenta.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL: CREAR / EDITAR CUENTA -->
+  <div id="accountModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+      <h3 id="accountModalTitle" class="text-lg font-bold text-white mb-4">Nueva Cuenta</h3>
+      
+      <form id="accountForm" onsubmit="handleAccountFormSubmit(event)" class="space-y-4">
+        <input type="hidden" id="accountEditId">
+
+        <div>
+          <label class="block text-xs font-medium text-gray-300 mb-1">Nombre o Título de la Cuenta *</label>
+          <input type="text" id="accNameInput" required placeholder="Ej. Caja Chica, Proyecto X, Viáticos" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-gray-300 mb-1">Moneda *</label>
+            <select id="accCurrencyInput" required class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+              <option value="GTQ">Quetzales (Q)</option>
+              <option value="USD">Dólares ($)</option>
+              <option value="EUR">Euros (€)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-300 mb-1">Monto Inicial *</label>
+            <input type="number" step="0.01" min="0" id="accInitialInput" required placeholder="0.00" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-300 mb-1">Fecha de Creación *</label>
+          <input type="date" id="accCreatedDateInput" required class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-300 mb-1">Nota o Descripción Breve</label>
+          <textarea id="accNoteInput" rows="2" placeholder="Información sobre para qué se asignó este dinero..." class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500"></textarea>
+        </div>
+
+        <div class="flex items-center justify-end space-x-3 pt-2">
+          <button type="button" onclick="closeAccountModal()" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-medium rounded-xl transition">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium rounded-xl transition shadow-lg shadow-brand-600/20">Guardar Cuenta</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: AGREGAR MOVIMIENTO / DÉBITO (-) O INGRESO (+) -->
+  <div id="transactionModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="txModalTitle" class="text-lg font-bold text-white">Registrar Débito</h3>
+        <span id="txTypeBadge" class="px-2.5 py-1 text-xs font-bold rounded-lg">DÉBITO (-)</span>
+      </div>
+
+      <form id="transactionForm" onsubmit="handleTransactionFormSubmit(event)" class="space-y-4">
+        <input type="hidden" id="txTypeInput" value="DEBIT">
+
+        <div>
+          <label class="block text-xs font-medium text-gray-300 mb-1">Monto *</label>
+          <div class="relative">
+            <span id="txCurrencyPrefix" class="absolute left-3 top-2.5 text-gray-400 font-bold text-sm">Q</span>
+            <input type="number" step="0.01" min="0.01" id="txAmountInput" required placeholder="0.00" class="w-full bg-gray-950 border border-gray-800 rounded-xl pl-9 pr-3 py-2.5 text-base font-bold text-white focus:outline-none focus:border-brand-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-300 mb-1">Concepto / En qué se gastó *</label>
+          <input type="text" id="txConceptInput" required placeholder="Ej. Pago de combustible, Compra de papelería, Almuerzo" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-gray-300 mb-1">Fecha *</label>
+            <input type="date" id="txDateInput" required class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-300 mb-1">N° Recibo / Factura</label>
+            <input type="text" id="txReceiptInput" placeholder="Ej. F-10293" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end space-x-3 pt-2">
+          <button type="button" onclick="closeTransactionModal()" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-medium rounded-xl transition">Cancelar</button>
+          <button type="submit" id="txSubmitBtn" class="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium rounded-xl transition shadow-lg">Registrar Gasto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: RESPALDO Y EXPORTACIÓN -->
+  <div id="backupModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-5">
+      <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+        <h3 class="text-lg font-bold text-white flex items-center">
+          <i class="fa-solid fa-shield-halved text-brand-400 mr-2"></i> Respaldo y Exportación
+        </h3>
+        <button onclick="closeBackupModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3">
+        <div class="p-3 bg-gray-950 rounded-xl border border-gray-800">
+          <h4 class="text-xs font-bold text-gray-200 mb-1">1. Descargar Copia de Seguridad (JSON)</h4>
+          <p class="text-xs text-gray-400 mb-3">Guarda todos tus datos en un archivo local para no perder información si limpias tu navegador.</p>
+          <button onclick="exportBackupJSON()" class="w-full py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium rounded-lg transition flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-download"></i>
+            <span>Exportar Copia (JSON)</span>
+          </button>
+        </div>
+
+        <div class="p-3 bg-gray-950 rounded-xl border border-gray-800">
+          <h4 class="text-xs font-bold text-gray-200 mb-1">2. Restaurar Datos desde Archivo</h4>
+          <p class="text-xs text-gray-400 mb-3">Carga una copia de seguridad JSON previamente guardada.</p>
+          <input type="file" id="importJsonInput" accept=".json" class="hidden" onchange="handleImportJSON(event)">
+          <button onclick="document.getElementById('importJsonInput').click()" class="w-full py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-medium rounded-lg transition border border-gray-700 flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-upload"></i>
+            <span>Importar Copia de Seguridad</span>
+          </button>
+        </div>
+
+        <div class="p-3 bg-gray-950 rounded-xl border border-gray-800">
+          <h4 class="text-xs font-bold text-gray-200 mb-1">3. Exportar Reporte General en CSV</h4>
+          <p class="text-xs text-gray-400 mb-3">Descarga una hoja de cálculo con todos los movimientos para rendiciones formales.</p>
+          <button onclick="exportAllToCSV()" class="w-full py-2 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-medium rounded-lg transition flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-file-csv"></i>
+            <span>Exportar Todo a CSV / Excel</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT LÓGICA PRINCIPAL -->
+  <script>
+    // ESTADO DE LA APLICACIÓN
+    const STORAGE_KEY = 'app_cuentas_contables_v2';
+    
+    let appData = {
+      headerTitle: 'Mi Libro Contable',
+      headerSubtitle: 'Registro local y rendición de cuentas',
+      privacyHidden: false,
+      accounts: []
+    };
+
+    let currentAccountId = null;
+
+    const CURRENCY_SYMBOLS = {
+      GTQ: 'Q',
+      USD: '$',
+      EUR: '€'
+    };
+
+    // INICIALIZACIÓN
+    window.addEventListener('DOMContentLoaded', () => {
+      loadState();
+      
+      // Fecha predeterminada de hoy en formularios
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('accCreatedDateInput').value = today;
+      document.getElementById('txDateInput').value = today;
+
+      renderApp();
+    });
+
+    // CARGAR Y GUARDAR ESTADO EN LOCALSTORAGE
+    function loadState() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          appData = JSON.parse(saved);
+        } catch (e) {
+          console.error("Error al cargar datos de localStorage", e);
+        }
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+      renderApp();
+    }
+
+    function saveHeaderTitles() {
+      appData.headerTitle = document.getElementById('appTitle').innerText.trim();
+      appData.headerSubtitle = document.getElementById('appSubtitle').innerText.trim();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    }
+
+    // PRIVACIDAD (OCULTAR / MOSTRAR SALDOS)
+    function togglePrivacy() {
+      appData.privacyHidden = !appData.privacyHidden;
+      saveState();
+    }
+
+    function formatMoney(amount, currencyCode = 'GTQ') {
+      if (appData.privacyHidden) {
+        return '••••••';
+      }
+      const symbol = CURRENCY_SYMBOLS[currencyCode] || '$';
+      const num = parseFloat(amount || 0).toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return `${symbol} ${num}`;
+    }
+
+    // RENDERIZADO GENERAL
+    function renderApp() {
+      // Configurar Títulos del Header
+      document.getElementById('appTitle').innerText = appData.headerTitle || 'Mi Libro Contable';
+      document.getElementById('appSubtitle').innerText = appData.headerSubtitle || 'Registro local y rendición de cuentas';
+
+      // Icono de Privacidad
+      const privacyBtnIcon = document.getElementById('privacyIcon');
+      if (appData.privacyHidden) {
+        privacyBtnIcon.className = 'fa-solid fa-eye-slash text-amber-400';
+      } else {
+        privacyBtnIcon.className = 'fa-solid fa-eye';
+      }
+
+      // Renderizar Totales Dinámicos por Moneda
+      renderDynamicTotals();
+
+      // Renderizar Vista Actual
+      if (currentAccountId === null) {
+        document.getElementById('dashboardView').classList.remove('hidden');
+        document.getElementById('accountDetailView').classList.add('hidden');
+        document.getElementById('btnBackToHome').classList.add('hidden');
+        renderAccountsGrid();
+      } else {
+        document.getElementById('dashboardView').classList.add('hidden');
+        document.getElementById('accountDetailView').classList.remove('hidden');
+        document.getElementById('btnBackToHome').classList.remove('hidden');
+        renderAccountDetail();
+      }
+    }
+
+    // DYNAMIC TOTAL BALANCES BANNER
+    function renderDynamicTotals() {
+      const container = document.getElementById('dynamicTotalsContainer');
+      container.innerHTML = '';
+
+      if (appData.accounts.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full bg-gray-900 border border-gray-800 rounded-2xl p-4 text-center text-xs text-gray-400">
+            Crea una cuenta para comenzar a ver el resumen acumulado de tus fondos.
+          </div>
+        `;
+        return;
+      }
+
+      // Agrupar saldos acumulados por moneda
+      const currencyTotals = {};
+
+      appData.accounts.forEach(acc => {
+        const curr = acc.currency || 'GTQ';
+        if (!currencyTotals[curr]) {
+          currencyTotals[curr] = { total: 0, count: 0 };
+        }
+        
+        // Calcular saldo actual de la cuenta
+        const debits = (acc.transactions || [])
+          .filter(t => t.type === 'DEBIT')
+          .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+          
+        const credits = (acc.transactions || [])
+          .filter(t => t.type === 'CREDIT')
+          .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+
+        const currentBalance = parseFloat(acc.initialBalance || 0) + credits - debits;
+        
+        currencyTotals[curr].total += currentBalance;
+        currencyTotals[curr].count += 1;
+      });
+
+      // Renderizar una tarjeta por cada moneda activa
+      Object.keys(currencyTotals).forEach(curr => {
+        const data = currencyTotals[curr];
+        const symbol = CURRENCY_SYMBOLS[curr] || '$';
+        
+        const cardHtml = `
+          <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 shadow-md flex items-center justify-between">
+            <div>
+              <span class="text-xs font-medium text-gray-400 block">Total Acumulado (${curr})</span>
+              <span class="text-2xl font-black text-brand-400">${formatMoney(data.total, curr)}</span>
+              <span class="text-[10px] text-gray-500 block mt-0.5">${data.count} cuenta(s) en ${curr}</span>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20 flex items-center justify-center font-bold text-lg">
+              ${symbol}
+            </div>
+          </div>
+        `;
+        container.insertAdjacentHTML('beforeend', cardHtml);
+      });
+    }
+
+    // RENDERIZAR GRID DE CUADROS DE CUENTAS
+    function renderAccountsGrid() {
+      const grid = document.getElementById('accountsGrid');
+      const emptyState = document.getElementById('emptyAccountsState');
+      grid.innerHTML = '';
+
+      if (appData.accounts.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      appData.accounts.forEach(acc => {
+        const debits = (acc.transactions || [])
+          .filter(t => t.type === 'DEBIT')
+          .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+          
+        const credits = (acc.transactions || [])
+          .filter(t => t.type === 'CREDIT')
+          .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+
+        const currentBalance = parseFloat(acc.initialBalance || 0) + credits - debits;
+        const txCount = (acc.transactions || []).length;
+        const createdDate = acc.createdDate || 'No especificada';
+
+        const cardHtml = `
+          <div onclick="openAccountDetail('${acc.id}')" class="bg-gray-900 border border-gray-800 hover:border-brand-500/50 rounded-2xl p-5 shadow-lg hover:shadow-brand-500/5 transition cursor-pointer group flex flex-col justify-between space-y-4">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="px-2 py-0.5 text-[10px] font-bold bg-brand-500/10 text-brand-400 border border-brand-500/20 rounded">
+                  ${acc.currency || 'GTQ'}
+                </span>
+                <span class="text-[11px] text-gray-500 flex items-center">
+                  <i class="fa-regular fa-calendar mr-1"></i> ${createdDate}
+                </span>
+              </div>
+              <h3 class="text-lg font-bold text-white group-hover:text-brand-400 transition-colors line-clamp-1">${acc.name}</h3>
+              <p class="text-xs text-gray-400 mt-1 line-clamp-2">${acc.note || 'Sin nota o descripción'}</p>
+            </div>
+
+            <div class="pt-3 border-t border-gray-800/80 flex items-end justify-between">
+              <div>
+                <span class="text-[11px] text-gray-400 block">Saldo Disponible</span>
+                <span class="text-xl font-extrabold text-white">${formatMoney(currentBalance, acc.currency)}</span>
+              </div>
+              <span class="text-xs font-semibold text-brand-400 group-hover:translate-x-1 transition-transform flex items-center">
+                Ingresar <i class="fa-solid fa-chevron-right ml-1 text-[10px]"></i>
+              </span>
+            </div>
+          </div>
+        `;
+        grid.insertAdjacentHTML('beforeend', cardHtml);
+      });
+    }
+
+    // NAVEGACIÓN
+    function navigateToHome() {
+      currentAccountId = null;
+      renderApp();
+    }
+
+    function openAccountDetail(accId) {
+      currentAccountId = accId;
+      renderApp();
+    }
+
+    // RENDERIZAR DETALLE DE CUENTA Y TRANSACCIONES
+    function renderAccountDetail() {
+      const acc = appData.accounts.find(a => a.id === currentAccountId);
+      if (!acc) {
+        navigateToHome();
+        return;
+      }
+
+      document.getElementById('detailTitle').innerText = acc.name;
+      document.getElementById('detailNote').innerText = acc.note || 'Haz clic para agregar notas...';
+      document.getElementById('detailCurrencyBadge').innerText = `${acc.currency || 'GTQ'} - ${CURRENCY_SYMBOLS[acc.currency] || 'Q'}`;
+      document.getElementById('detailCreatedDate').innerHTML = `<i class="fa-regular fa-calendar-alt mr-1"></i> Creada: ${acc.createdDate || 'No registrada'}`;
+
+      // Cálculos
+      const debits = (acc.transactions || [])
+        .filter(t => t.type === 'DEBIT')
+        .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+        
+      const credits = (acc.transactions || [])
+        .filter(t => t.type === 'CREDIT')
+        .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+
+      const currentBalance = parseFloat(acc.initialBalance || 0) + credits - debits;
+
+      document.getElementById('detailInitialBalance').innerText = formatMoney(acc.initialBalance, acc.currency);
+      document.getElementById('detailTotalDebits').innerText = formatMoney(debits, acc.currency);
+      document.getElementById('detailCurrentBalance').innerText = formatMoney(currentBalance, acc.currency);
+
+      renderTransactions();
+    }
+
+    function updateCurrentAccountTitle() {
+      const acc = appData.accounts.find(a => a.id === currentAccountId);
+      if (acc) {
+        const newTitle = document.getElementById('detailTitle').innerText.trim();
+        if (newTitle) {
+          acc.name = newTitle;
+          saveState();
+        }
+      }
+    }
+
+    function updateCurrentAccountNote() {
+      const acc = appData.accounts.find(a => a.id === currentAccountId);
+      if (acc) {
+        acc.note = document.getElementById('detailNote').innerText.trim();
+        saveState();
+      }
+    }
+
+    // RENDERIZAR TABLA DE TRANSACCIONES
+    function renderTransactions() {
+      const acc = appData.accounts.find(a => a.id === currentAccountId);
+      if (!acc) return;
+
+      const tbody = document.getElementById('transactionsTableBody');
+      const emptyState = document.getElementById('emptyTransactionsState');
+      const query = document.getElementById('txSearchInput').value.toLowerCase().trim();
+
+      tbody.innerHTML = '';
+
+      let txs = acc.transactions || [];
+
+      if (query) {
+        txs = txs.filter(t => 
+          (t.concept && t.concept.toLowerCase().includes(query)) ||
+          (t.receipt && t.receipt.toLowerCase().includes(query))
+        );
+      }
+
+      if (txs.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      // Ordenar más recientes primero
+      txs.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      txs.forEach(t => {
+        const isDebit = t.type === 'DEBIT';
+        const typeBadge = isDebit 
+          ? `<span class="px-2 py-0.5 text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded">Gasto (-)</span>`
+          : `<span class="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded">Ingreso (+)</span>`;
+
+        const amountColor = isDebit ? 'text-rose-400' : 'text-emerald-400';
+        const amountPrefix = isDebit ? '-' : '+';
+
+        const rowHtml = `
+          <tr class="hover:bg-gray-800/40 transition">
+            <td class="px-4 py-3 whitespace-nowrap">${typeBadge}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-gray-400">${t.date}</td>
+            <td class="px-4 py-3 font-medium text-white">${t.concept}</td>
+            <td class="px-4 py-3 text-gray-400">${t.receipt || '-'}</td>
+            <td class="px-4 py-3 text-right font-bold ${amountColor} whitespace-nowrap">
+              ${amountPrefix} ${formatMoney(t.amount, acc.currency)}
+            </td>
+            <td class="px-4 py-3 text-center whitespace-nowrap">
+              <button onclick="deleteTransaction('${t.id}')" title="Eliminar este gasto" class="p-1.5 text-gray-500 hover:text-rose-400 transition">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+        tbody.insertAdjacentHTML('beforeend', rowHtml);
+      });
+    }
+
+    // GESTIÓN DE CUENTAS (MODAL CREAR / EDITAR)
+    function openAccountModal(editId = null) {
+      const modal = document.getElementById('accountModal');
+      const title = document.getElementById('accountModalTitle');
+      const form = document.getElementById('accountForm');
+
+      form.reset();
+      document.getElementById('accCreatedDateInput').value = new Date().toISOString().split('T')[0];
+
+      if (editId) {
+        const acc = appData.accounts.find(a => a.id === editId);
+        if (acc) {
+          document.getElementById('accountEditId').value = acc.id;
+          document.getElementById('accNameInput').value = acc.name;
+          document.getElementById('accCurrencyInput').value = acc.currency || 'GTQ';
+          document.getElementById('accInitialInput').value = acc.initialBalance;
+          document.getElementById('accCreatedDateInput').value = acc.createdDate || new Date().toISOString().split('T')[0];
+          document.getElementById('accNoteInput').value = acc.note || '';
+          title.innerText = 'Editar Cuenta';
+        }
+      } else {
+        document.getElementById('accountEditId').value = '';
+        title.innerText = 'Nueva Cuenta';
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeAccountModal() {
+      document.getElementById('accountModal').classList.add('hidden');
+    }
+
+    function handleAccountFormSubmit(e) {
+      e.preventDefault();
+      const editId = document.getElementById('accountEditId').value;
+      const name = document.getElementById('accNameInput').value.trim();
+      const currency = document.getElementById('accCurrencyInput').value;
+      const initialBalance = parseFloat(document.getElementById('accInitialInput').value || 0);
+      const createdDate = document.getElementById('accCreatedDateInput').value;
+      const note = document.getElementById('accNoteInput').value.trim();
+
+      if (editId) {
+        const acc = appData.accounts.find(a => a.id === editId);
+        if (acc) {
+          acc.name = name;
+          acc.currency = currency;
+          acc.initialBalance = initialBalance;
+          acc.createdDate = createdDate;
+          acc.note = note;
+        }
+      } else {
+        const newAcc = {
+          id: 'acc_' + Date.now(),
+          name,
+          currency,
+          initialBalance,
+          createdDate,
+          note,
+          transactions: []
+        };
+        appData.accounts.push(newAcc);
+      }
+
+      saveState();
+      closeAccountModal();
+    }
+
+    function editCurrentAccount() {
+      if (currentAccountId) {
+        openAccountModal(currentAccountId);
+      }
+    }
+
+    function deleteCurrentAccount() {
+      if (!currentAccountId) return;
+      if (confirm('¿Estás seguro de que deseas eliminar esta cuenta y todos sus registros de débitos? Esta acción no se puede deshacer.')) {
+        appData.accounts = appData.accounts.filter(a => a.id !== currentAccountId);
+        currentAccountId = null;
+        saveState();
+      }
+    }
+
+    // GESTIÓN DE TRANSACCIONES / DÉBITOS
+    function openTransactionModal(type = 'DEBIT') {
+      const acc = appData.accounts.find(a => a.id === currentAccountId);
+      if (!acc) return;
+
+      const modal = document.getElementById('transactionModal');
+      const form = document.getElementById('transactionForm');
+      form.reset();
+
+      document.getElementById('txTypeInput').value = type;
+      document.getElementById('txCurrencyPrefix').innerText = CURRENCY_SYMBOLS[acc.currency] || 'Q';
+      document.getElementById('txDateInput').value = new Date().toISOString().split('T')[0];
+
+      const badge = document.getElementById('txTypeBadge');
+      const btn = document.getElementById('txSubmitBtn');
+      const title = document.getElementById('txModalTitle');
+
+      if (type === 'DEBIT') {
+        title.innerText = 'Registrar Débito / Gasto';
+        badge.innerText = 'DÉBITO (-)';
+        badge.className = 'px-2.5 py-1 text-xs font-bold rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/30';
+        btn.innerText = 'Registrar Gasto';
+        btn.className = 'px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium rounded-xl transition shadow-lg shadow-rose-600/20';
+      } else {
+        title.innerText = 'Registrar Ingreso / Acreditación';
+        badge.innerText = 'INGRESO (+)';
+        badge.className = 'px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+        btn.innerText = 'Registrar Ingreso';
+        btn.className = 'px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium rounded-xl transition shadow-lg shadow-emerald-600/20';
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeTransactionModal() {
+      document.getElementById('transactionModal').classList.add('hidden');
+    }
+
+    function handleTransactionFormSubmit(e) {
+      e.preventDefault();
+      const acc = appData.accounts.find(a => a.id === currentAccountId);
+      if (!acc) return;
+
+      const type = document.getElementById('txTypeInput').value;
+      const amount = parseFloat(document.getElementById('txAmountInput').value || 0);
+      const concept = document.getElementById('txConceptInput').value.trim();
+      const date = document.getElementById('txDateInput').value;
+      const receipt = document.getElementById('txReceiptInput').value.trim();
+
+      const newTx = {
+        id: 'tx_' + Date.now(),
+        type,
+        amount,
+        concept,
+        date,
+        receipt
+      };
+
+      if (!acc.transactions) acc.transactions = [];
+      acc.transactions.push(newTx);
+
+      saveState();
+      closeTransactionModal();
+    }
+
+    function deleteTransaction(txId) {
+      const acc = appData.accounts.find(a => a.id === currentAccountId);
+      if (!acc) return;
+
+      if (confirm('¿Eliminar esta transacción? El saldo total se recalculará automáticamente.')) {
+        acc.transactions = acc.transactions.filter(t => t.id !== txId);
+        saveState();
+      }
+    }
+
+    // MODAL RESPALDO & EXPORTACIÓN
+    function openBackupModal() {
+      document.getElementById('backupModal').classList.remove('hidden');
+    }
+
+    function closeBackupModal() {
+      document.getElementById('backupModal').classList.add('hidden');
+    }
+
+    function exportBackupJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
+      const dlAnchor = document.createElement('a');
+      const fileName = `respaldo_cuentas_${new Date().toISOString().split('T')[0]}.json`;
+      dlAnchor.setAttribute("href", dataStr);
+      dlAnchor.setAttribute("download", fileName);
+      document.body.appendChild(dlAnchor);
+      dlAnchor.click();
+      dlAnchor.remove();
+    }
+
+    function handleImportJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (imported && Array.isArray(imported.accounts)) {
+            appData = imported;
+            saveState();
+            alert('¡Copia de seguridad restaurada con éxito!');
+            closeBackupModal();
+          } else {
+            alert('El archivo JSON no tiene el formato correcto.');
+          }
+        } catch (err) {
+          alert('Error al leer el archivo JSON.');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function exportAccountToCSV() {
+      const acc = appData.accounts.find(a => a.id === currentAccountId);
+      if (!acc) return;
+
+      let csv = `Tipo,Fecha,Concepto,Recibo,Monto (${acc.currency})\n`;
+      (acc.transactions || []).forEach(t => {
+        csv += `"${t.type}","${t.date}","${t.concept.replace(/"/g, '""')}","${(t.receipt || '').replace(/"/g, '""')}","${t.amount}"\n`;
+      });
+
+      downloadCSV(csv, `Rendicion_${acc.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+    }
+
+    function exportAllToCSV() {
+      let csv = `Cuenta,Moneda,Tipo,Fecha,Concepto,Recibo,Monto\n`;
+      appData.accounts.forEach(acc => {
+        (acc.transactions || []).forEach(t => {
+          csv += `"${acc.name.replace(/"/g, '""')}","${acc.currency}","${t.type}","${t.date}","${t.concept.replace(/"/g, '""')}","${(t.receipt || '').replace(/"/g, '""')}","${t.amount}"\n`;
+        });
+      });
+
+      downloadCSV(csv, `Reporte_General_Cuentas_${new Date().toISOString().split('T')[0]}.csv`);
+    }
+
+    function downloadCSV(csvContent, fileName) {
+      const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
+</body>
+</html>
