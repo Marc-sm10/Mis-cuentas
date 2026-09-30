@@ -81,10 +81,10 @@
   <!-- MAIN CONTAINER -->
   <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-    <!-- DYNAMIC TOTAL BALANCES BANNER (Top Cards) -->
-    <section id="globalSummarySection" class="mb-6">
+    <!-- DYNAMIC TOTAL BALANCES BANNER (Solo visible en el Dashboard) -->
+    <section id="globalSummarySection" class="mb-6 space-y-4">
       <div id="dynamicTotalsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        <!-- Generado dinámicamente según las monedas registradas -->
+        <!-- Generado dinámicamente según la opción de acumulación -->
       </div>
     </section>
 
@@ -127,7 +127,8 @@
           <div>
             <div class="flex items-center space-x-2 mb-1">
               <span id="detailCurrencyBadge" class="px-2 py-0.5 text-xs font-bold bg-brand-500/10 text-brand-400 border border-brand-500/20 rounded">GTQ - Q</span>
-              <span id="detailCreatedDate" class="text-xs text-gray-400 flex items-center">
+              <span id="detailGroupBadge" class="px-2 py-0.5 text-xs font-medium bg-gray-800 text-gray-300 border border-gray-700 rounded">Total General</span>
+              <span id="detailCreatedDate" class="text-xs text-gray-400 flex items-center ml-2">
                 <i class="fa-regular fa-calendar-alt mr-1"></i> Creada: -
               </span>
             </div>
@@ -249,6 +250,15 @@
             <label class="block text-xs font-medium text-gray-300 mb-1">Monto Inicial *</label>
             <input type="number" step="0.01" min="0" id="accInitialInput" required placeholder="0.00" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
           </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-300 mb-1">Acumulación en Saldo General *</label>
+          <select id="accGroupInput" required class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+            <option value="MAIN">Sumar al Total General Principal</option>
+            <option value="SECONDARY">Sumar al Total Secundario / Fondo</option>
+            <option value="NONE">Ninguno (No incluir en totales generales)</option>
+          </select>
         </div>
 
         <div>
@@ -388,6 +398,12 @@
       EUR: '€'
     };
 
+    const GROUP_LABELS = {
+      MAIN: 'Total General',
+      SECONDARY: 'Total Secundario',
+      NONE: 'Excluida de Totales'
+    };
+
     // INICIALIZACIÓN
     window.addEventListener('DOMContentLoaded', () => {
       loadState();
@@ -452,24 +468,26 @@
         privacyBtnIcon.className = 'fa-solid fa-eye';
       }
 
-      // Renderizar Totales Dinámicos por Moneda
-      renderDynamicTotals();
-
-      // Renderizar Vista Actual
+      // Renderizar Vista Actual y controlar visibilidad de Totales
       if (currentAccountId === null) {
+        document.getElementById('globalSummarySection').classList.remove('hidden');
         document.getElementById('dashboardView').classList.remove('hidden');
         document.getElementById('accountDetailView').classList.add('hidden');
         document.getElementById('btnBackToHome').classList.add('hidden');
+        
+        renderDynamicTotals();
         renderAccountsGrid();
       } else {
+        document.getElementById('globalSummarySection').classList.add('hidden');
         document.getElementById('dashboardView').classList.add('hidden');
         document.getElementById('accountDetailView').classList.remove('hidden');
         document.getElementById('btnBackToHome').classList.remove('hidden');
+        
         renderAccountDetail();
       }
     }
 
-    // DYNAMIC TOTAL BALANCES BANNER
+    // DYNAMIC TOTAL BALANCES BANNER (TOTAL GENERAL, SECUNDARIO)
     function renderDynamicTotals() {
       const container = document.getElementById('dynamicTotalsContainer');
       container.innerHTML = '';
@@ -483,14 +501,19 @@
         return;
       }
 
-      // Agrupar saldos acumulados por moneda
-      const currencyTotals = {};
+      // Agrupar por grupo de acumulación (MAIN, SECONDARY) y luego por moneda
+      const groups = {
+        MAIN: { label: 'Total General', totals: {} },
+        SECONDARY: { label: 'Total Secundario / Fondo', totals: {} }
+      };
+
+      let activeGroupsCount = 0;
 
       appData.accounts.forEach(acc => {
+        const groupKey = acc.group || 'MAIN';
+        if (groupKey === 'NONE') return; // Omitir las cuentas configuradas en 'ninguno'
+
         const curr = acc.currency || 'GTQ';
-        if (!currencyTotals[curr]) {
-          currencyTotals[curr] = { total: 0, count: 0 };
-        }
         
         // Calcular saldo actual de la cuenta
         const debits = (acc.transactions || [])
@@ -502,29 +525,49 @@
           .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
 
         const currentBalance = parseFloat(acc.initialBalance || 0) + credits - debits;
-        
-        currencyTotals[curr].total += currentBalance;
-        currencyTotals[curr].count += 1;
+
+        if (!groups[groupKey].totals[curr]) {
+          groups[groupKey].totals[curr] = { total: 0, count: 0 };
+        }
+
+        groups[groupKey].totals[curr].total += currentBalance;
+        groups[groupKey].totals[curr].count += 1;
+        activeGroupsCount++;
       });
 
-      // Renderizar una tarjeta por cada moneda activa
-      Object.keys(currencyTotals).forEach(curr => {
-        const data = currencyTotals[curr];
-        const symbol = CURRENCY_SYMBOLS[curr] || '$';
-        
-        const cardHtml = `
-          <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 shadow-md flex items-center justify-between">
-            <div>
-              <span class="text-xs font-medium text-gray-400 block">Total Acumulado (${curr})</span>
-              <span class="text-2xl font-black text-brand-400">${formatMoney(data.total, curr)}</span>
-              <span class="text-[10px] text-gray-500 block mt-0.5">${data.count} cuenta(s) en ${curr}</span>
-            </div>
-            <div class="w-10 h-10 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20 flex items-center justify-center font-bold text-lg">
-              ${symbol}
-            </div>
+      if (activeGroupsCount === 0) {
+        container.innerHTML = `
+          <div class="col-span-full bg-gray-900 border border-gray-800 rounded-2xl p-4 text-center text-xs text-gray-400">
+            Todas tus cuentas actuales están excluidas del total general.
           </div>
         `;
-        container.insertAdjacentHTML('beforeend', cardHtml);
+        return;
+      }
+
+      // Renderizar tarjetas por cada grupo y moneda
+      Object.keys(groups).forEach(gKey => {
+        const group = groups[gKey];
+        Object.keys(group.totals).forEach(curr => {
+          const data = group.totals[curr];
+          const symbol = CURRENCY_SYMBOLS[curr] || '$';
+          const isMain = gKey === 'MAIN';
+
+          const cardHtml = `
+            <div class="bg-gray-900 border ${isMain ? 'border-brand-500/30' : 'border-gray-800'} rounded-2xl p-4 shadow-md flex items-center justify-between">
+              <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider ${isMain ? 'text-brand-400' : 'text-gray-400'} block">
+                  ${group.label} (${curr})
+                </span>
+                <span class="text-2xl font-black ${isMain ? 'text-brand-400' : 'text-gray-200'}">${formatMoney(data.total, curr)}</span>
+                <span class="text-[10px] text-gray-500 block mt-0.5">${data.count} cuenta(s) sumadas</span>
+              </div>
+              <div class="w-10 h-10 rounded-xl ${isMain ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20' : 'bg-gray-800 text-gray-400'} flex items-center justify-center font-bold text-lg">
+                ${symbol}
+              </div>
+            </div>
+          `;
+          container.insertAdjacentHTML('beforeend', cardHtml);
+        });
       });
     }
 
@@ -552,14 +595,20 @@
 
         const currentBalance = parseFloat(acc.initialBalance || 0) + credits - debits;
         const createdDate = acc.createdDate || 'No especificada';
+        const groupLabel = GROUP_LABELS[acc.group || 'MAIN'];
 
         const cardHtml = `
           <div onclick="openAccountDetail('${acc.id}')" class="bg-gray-900 border border-gray-800 hover:border-brand-500/50 rounded-2xl p-5 shadow-lg hover:shadow-brand-500/5 transition cursor-pointer group flex flex-col justify-between space-y-4">
             <div>
               <div class="flex items-center justify-between mb-2">
-                <span class="px-2 py-0.5 text-[10px] font-bold bg-brand-500/10 text-brand-400 border border-brand-500/20 rounded">
-                  ${acc.currency || 'GTQ'}
-                </span>
+                <div class="flex items-center space-x-1.5">
+                  <span class="px-2 py-0.5 text-[10px] font-bold bg-brand-500/10 text-brand-400 border border-brand-500/20 rounded">
+                    ${acc.currency || 'GTQ'}
+                  </span>
+                  <span class="px-1.5 py-0.5 text-[9px] font-medium bg-gray-800 text-gray-400 rounded border border-gray-700">
+                    ${groupLabel}
+                  </span>
+                </div>
                 <span class="text-[11px] text-gray-500 flex items-center">
                   <i class="fa-regular fa-calendar mr-1"></i> ${createdDate}
                 </span>
@@ -605,6 +654,7 @@
       document.getElementById('detailTitle').innerText = acc.name;
       document.getElementById('detailNote').innerText = acc.note || 'Haz clic para agregar notas...';
       document.getElementById('detailCurrencyBadge').innerText = `${acc.currency || 'GTQ'} - ${CURRENCY_SYMBOLS[acc.currency] || 'Q'}`;
+      document.getElementById('detailGroupBadge').innerText = GROUP_LABELS[acc.group || 'MAIN'];
       document.getElementById('detailCreatedDate').innerHTML = `<i class="fa-regular fa-calendar-alt mr-1"></i> Creada: ${acc.createdDate || 'No registrada'}`;
 
       // Cálculos
@@ -729,12 +779,14 @@
           document.getElementById('accNameInput').value = acc.name;
           document.getElementById('accCurrencyInput').value = acc.currency || 'GTQ';
           document.getElementById('accInitialInput').value = acc.initialBalance;
+          document.getElementById('accGroupInput').value = acc.group || 'MAIN';
           document.getElementById('accCreatedDateInput').value = acc.createdDate || new Date().toISOString().split('T')[0];
           document.getElementById('accNoteInput').value = acc.note || '';
           title.innerText = 'Editar Cuenta';
         }
       } else {
         document.getElementById('accountEditId').value = '';
+        document.getElementById('accGroupInput').value = 'MAIN';
         title.innerText = 'Nueva Cuenta';
       }
 
@@ -751,6 +803,7 @@
       const name = document.getElementById('accNameInput').value.trim();
       const currency = document.getElementById('accCurrencyInput').value;
       const initialBalance = parseFloat(document.getElementById('accInitialInput').value || 0);
+      const group = document.getElementById('accGroupInput').value;
       const createdDate = document.getElementById('accCreatedDateInput').value;
       const note = document.getElementById('accNoteInput').value.trim();
 
@@ -760,6 +813,7 @@
           acc.name = name;
           acc.currency = currency;
           acc.initialBalance = initialBalance;
+          acc.group = group;
           acc.createdDate = createdDate;
           acc.note = note;
         }
@@ -769,6 +823,7 @@
           name,
           currency,
           initialBalance,
+          group,
           createdDate,
           note,
           transactions: []
@@ -958,10 +1013,10 @@
     }
 
     function exportAllToCSV() {
-      let csv = `Cuenta,Moneda,Tipo,Categoría,Fecha,Concepto,Recibo,Monto\n`;
+      let csv = `Cuenta,Moneda,Acumulacion,Tipo,Categoría,Fecha,Concepto,Recibo,Monto\n`;
       appData.accounts.forEach(acc => {
         (acc.transactions || []).forEach(t => {
-          csv += `"${acc.name.replace(/"/g, '""')}","${acc.currency}","${t.type}","${t.category || 'General'}","${t.date}","${t.concept.replace(/"/g, '""')}","${(t.receipt || '').replace(/"/g, '""')}","${t.amount}"\n`;
+          csv += `"${acc.name.replace(/"/g, '""')}","${acc.currency}","${acc.group || 'MAIN'}","${t.type}","${t.category || 'General'}","${t.date}","${t.concept.replace(/"/g, '""')}","${(t.receipt || '').replace(/"/g, '""')}","${t.amount}"\n`;
         });
       });
 
@@ -978,9 +1033,6 @@
       link.click();
       document.body.removeChild(link);
     }
-  </script>
-</body>
-</html>
   </script>
 </body>
 </html>
