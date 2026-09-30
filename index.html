@@ -81,14 +81,13 @@
   <!-- MAIN CONTAINER -->
   <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-    <!-- DYNAMIC TOTAL BALANCES BANNER (Solo visible en el Dashboard) -->
+    <!-- DYNAMIC TOTAL BALANCES BANNER -->
     <section id="globalSummarySection" class="mb-6 space-y-4">
       <div id="dynamicTotalsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        <!-- Generado dinámicamente según la opción de acumulación -->
       </div>
     </section>
 
-    <!-- VIEW 1: ACCOUNTS DASHBOARD (GRID DE CUADROS) -->
+    <!-- VIEW 1: ACCOUNTS DASHBOARD -->
     <section id="dashboardView" class="space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -103,7 +102,6 @@
 
       <!-- ACCOUNTS GRID -->
       <div id="accountsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        <!-- Se llena con JS -->
       </div>
 
       <!-- EMPTY STATE -->
@@ -210,7 +208,6 @@
               </tr>
             </thead>
             <tbody id="transactionsTableBody" class="divide-y divide-gray-800/60 bg-gray-900/40">
-              <!-- JS Injects Rows -->
             </tbody>
           </table>
         </div>
@@ -263,7 +260,7 @@
 
         <div>
           <label class="block text-xs font-medium text-gray-300 mb-1">Fecha de Creación *</label>
-          <input type="date" id="accCreatedDateInput" required class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+          <input type="text" id="accCreatedDateInput" required placeholder="YYYY-MM-DD o DD/MM/YYYY" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
         </div>
 
         <div>
@@ -314,13 +311,14 @@
 
         <div>
           <label class="block text-xs font-medium text-gray-300 mb-1">Concepto / Motivo *</label>
-          <input type="text" id="txConceptInput" required placeholder="Ej. Pago de combustible, Compra de papelería, Almuerzo" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+          <input type="text" id="txConceptInput" required placeholder="Ej. Pago de combustible, Compra de papelería" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-medium text-gray-300 mb-1">Fecha *</label>
-            <input type="date" id="txDateInput" required class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+            <label class="block text-xs font-medium text-gray-300 mb-1">Fecha * (Texto libre)</label>
+            <!-- CAMBIO A INPUT TEXT PARA PERMITIR EDICIÓN LIBRE -->
+            <input type="text" id="txDateInput" required placeholder="Ej. 2026-09-29 o 29/09" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-300 mb-1">N° Recibo / Factura</label>
@@ -349,7 +347,7 @@
       <div class="space-y-3">
         <div class="p-3 bg-gray-950 rounded-xl border border-gray-800">
           <h4 class="text-xs font-bold text-gray-200 mb-1">1. Descargar Copia de Seguridad (JSON)</h4>
-          <p class="text-xs text-gray-400 mb-3">Guarda todos tus datos en un archivo local para no perder información si limpias tu navegador.</p>
+          <p class="text-xs text-gray-400 mb-3">Guarda todos tus datos en un archivo local.</p>
           <button onclick="exportBackupJSON()" class="w-full py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium rounded-lg transition flex items-center justify-center space-x-2">
             <i class="fa-solid fa-download"></i>
             <span>Exportar Copia (JSON)</span>
@@ -368,7 +366,7 @@
 
         <div class="p-3 bg-gray-950 rounded-xl border border-gray-800">
           <h4 class="text-xs font-bold text-gray-200 mb-1">3. Exportar Reporte General en CSV</h4>
-          <p class="text-xs text-gray-400 mb-3">Descarga una hoja de cálculo con todos los movimientos para rendiciones formales.</p>
+          <p class="text-xs text-gray-400 mb-3">Descarga una hoja de cálculo con todos los movimientos.</p>
           <button onclick="exportAllToCSV()" class="w-full py-2 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-medium rounded-lg transition flex items-center justify-center space-x-2">
             <i class="fa-solid fa-file-csv"></i>
             <span>Exportar Todo a CSV / Excel</span>
@@ -380,7 +378,6 @@
 
   <!-- SCRIPT LÓGICA PRINCIPAL -->
   <script>
-    // ESTADO DE LA APLICACIÓN
     const STORAGE_KEY = 'app_cuentas_contables_v2';
     
     let appData = {
@@ -404,19 +401,11 @@
       NONE: 'Excluida de Totales'
     };
 
-    // INICIALIZACIÓN
     window.addEventListener('DOMContentLoaded', () => {
       loadState();
-      
-      // Fecha predeterminada de hoy en formularios
-      const today = new Date().toISOString().split('T')[0];
-      document.getElementById('accCreatedDateInput').value = today;
-      document.getElementById('txDateInput').value = today;
-
       renderApp();
     });
 
-    // CARGAR Y GUARDAR ESTADO EN LOCALSTORAGE
     function loadState() {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -439,7 +428,6 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
     }
 
-    // PRIVACIDAD (OCULTAR / MOSTRAR SALDOS)
     function togglePrivacy() {
       appData.privacyHidden = !appData.privacyHidden;
       saveState();
@@ -454,13 +442,10 @@
       return `${symbol} ${num}`;
     }
 
-    // RENDERIZADO GENERAL
     function renderApp() {
-      // Configurar Títulos del Header
       document.getElementById('appTitle').innerText = appData.headerTitle || 'Mi Libro Contable';
       document.getElementById('appSubtitle').innerText = appData.headerSubtitle || 'Registro local y rendición de cuentas';
 
-      // Icono de Privacidad
       const privacyBtnIcon = document.getElementById('privacyIcon');
       if (appData.privacyHidden) {
         privacyBtnIcon.className = 'fa-solid fa-eye-slash text-amber-400';
@@ -468,7 +453,6 @@
         privacyBtnIcon.className = 'fa-solid fa-eye';
       }
 
-      // Renderizar Vista Actual y controlar visibilidad de Totales
       if (currentAccountId === null) {
         document.getElementById('globalSummarySection').classList.remove('hidden');
         document.getElementById('dashboardView').classList.remove('hidden');
@@ -487,7 +471,6 @@
       }
     }
 
-    // DYNAMIC TOTAL BALANCES BANNER (TOTAL GENERAL, SECUNDARIO)
     function renderDynamicTotals() {
       const container = document.getElementById('dynamicTotalsContainer');
       container.innerHTML = '';
@@ -501,7 +484,6 @@
         return;
       }
 
-      // Agrupar por grupo de acumulación (MAIN, SECONDARY) y luego por moneda
       const groups = {
         MAIN: { label: 'Total General', totals: {} },
         SECONDARY: { label: 'Total Secundario / Fondo', totals: {} }
@@ -511,11 +493,10 @@
 
       appData.accounts.forEach(acc => {
         const groupKey = acc.group || 'MAIN';
-        if (groupKey === 'NONE') return; // Omitir las cuentas configuradas en 'ninguno'
+        if (groupKey === 'NONE') return;
 
         const curr = acc.currency || 'GTQ';
         
-        // Calcular saldo actual de la cuenta
         const debits = (acc.transactions || [])
           .filter(t => t.type === 'DEBIT')
           .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
@@ -544,7 +525,6 @@
         return;
       }
 
-      // Renderizar tarjetas por cada grupo y moneda
       Object.keys(groups).forEach(gKey => {
         const group = groups[gKey];
         Object.keys(group.totals).forEach(curr => {
@@ -571,7 +551,6 @@
       });
     }
 
-    // RENDERIZAR GRID DE CUADROS DE CUENTAS
     function renderAccountsGrid() {
       const grid = document.getElementById('accountsGrid');
       const emptyState = document.getElementById('emptyAccountsState');
@@ -632,7 +611,6 @@
       });
     }
 
-    // NAVEGACIÓN
     function navigateToHome() {
       currentAccountId = null;
       renderApp();
@@ -643,7 +621,6 @@
       renderApp();
     }
 
-    // RENDERIZAR DETALLE DE CUENTA Y TRANSACCIONES
     function renderAccountDetail() {
       const acc = appData.accounts.find(a => a.id === currentAccountId);
       if (!acc) {
@@ -657,7 +634,6 @@
       document.getElementById('detailGroupBadge').innerText = GROUP_LABELS[acc.group || 'MAIN'];
       document.getElementById('detailCreatedDate').innerHTML = `<i class="fa-regular fa-calendar-alt mr-1"></i> Creada: ${acc.createdDate || 'No registrada'}`;
 
-      // Cálculos
       const debits = (acc.transactions || [])
         .filter(t => t.type === 'DEBIT')
         .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
@@ -694,7 +670,6 @@
       }
     }
 
-    // RENDERIZAR TABLA DE TRANSACCIONES
     function renderTransactions() {
       const acc = appData.accounts.find(a => a.id === currentAccountId);
       if (!acc) return;
@@ -722,9 +697,6 @@
 
       emptyState.classList.add('hidden');
 
-      // Ordenar más recientes primero
-      txs.sort((a, b) => new Date(b.date) - new Date(a.date));
-
       txs.forEach(t => {
         const isDebit = t.type === 'DEBIT';
         const typeBadge = isDebit 
@@ -743,7 +715,7 @@
                 ${categoryName}
               </span>
             </td>
-            <td class="px-4 py-3 whitespace-nowrap text-gray-400">${t.date}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-gray-400">${t.date || '-'}</td>
             <td class="px-4 py-3 font-medium text-white">${t.concept}</td>
             <td class="px-4 py-3 text-gray-400">${t.receipt || '-'}</td>
             <td class="px-4 py-3 text-right font-bold ${amountColor} whitespace-nowrap">
@@ -763,14 +735,14 @@
       });
     }
 
-    // GESTIÓN DE CUENTAS (MODAL CREAR / EDITAR)
     function openAccountModal(editId = null) {
       const modal = document.getElementById('accountModal');
       const title = document.getElementById('accountModalTitle');
       const form = document.getElementById('accountForm');
 
       form.reset();
-      document.getElementById('accCreatedDateInput').value = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('accCreatedDateInput').value = today;
 
       if (editId) {
         const acc = appData.accounts.find(a => a.id === editId);
@@ -780,7 +752,7 @@
           document.getElementById('accCurrencyInput').value = acc.currency || 'GTQ';
           document.getElementById('accInitialInput').value = acc.initialBalance;
           document.getElementById('accGroupInput').value = acc.group || 'MAIN';
-          document.getElementById('accCreatedDateInput').value = acc.createdDate || new Date().toISOString().split('T')[0];
+          document.getElementById('accCreatedDateInput').value = acc.createdDate || today;
           document.getElementById('accNoteInput').value = acc.note || '';
           title.innerText = 'Editar Cuenta';
         }
@@ -804,7 +776,7 @@
       const currency = document.getElementById('accCurrencyInput').value;
       const initialBalance = parseFloat(document.getElementById('accInitialInput').value || 0);
       const group = document.getElementById('accGroupInput').value;
-      const createdDate = document.getElementById('accCreatedDateInput').value;
+      const createdDate = document.getElementById('accCreatedDateInput').value.trim();
       const note = document.getElementById('accNoteInput').value.trim();
 
       if (editId) {
@@ -850,7 +822,7 @@
       }
     }
 
-    // GESTIÓN DE TRANSACCIONES / DÉBITOS (CREAR / EDITAR)
+    // AHORA SÍ: PERMITE EDITAR LIBREMENTE LA FECHA DE LA TRANSACCIÓN
     function openTransactionModal(type = 'DEBIT', txId = null) {
       const acc = appData.accounts.find(a => a.id === currentAccountId);
       if (!acc) return;
@@ -865,6 +837,8 @@
       const btn = document.getElementById('txSubmitBtn');
       const title = document.getElementById('txModalTitle');
 
+      const today = new Date().toISOString().split('T')[0];
+
       if (txId) {
         const tx = (acc.transactions || []).find(t => t.id === txId);
         if (tx) {
@@ -873,7 +847,7 @@
           document.getElementById('txAmountInput').value = tx.amount;
           document.getElementById('txCategoryInput').value = tx.category || 'General';
           document.getElementById('txConceptInput').value = tx.concept;
-          document.getElementById('txDateInput').value = tx.date || new Date().toISOString().split('T')[0];
+          document.getElementById('txDateInput').value = tx.date || today; // Carga la fecha guardada
           document.getElementById('txReceiptInput').value = tx.receipt || '';
 
           type = tx.type;
@@ -882,7 +856,7 @@
       } else {
         document.getElementById('txEditId').value = '';
         document.getElementById('txTypeInput').value = type;
-        document.getElementById('txDateInput').value = new Date().toISOString().split('T')[0];
+        document.getElementById('txDateInput').value = today; // Sugiere la fecha de hoy al crear
         title.innerText = type === 'DEBIT' ? 'Registrar Débito / Gasto' : 'Registrar Ingreso / Acreditación';
       }
 
@@ -915,7 +889,7 @@
       const amount = parseFloat(document.getElementById('txAmountInput').value || 0);
       const category = document.getElementById('txCategoryInput').value;
       const concept = document.getElementById('txConceptInput').value.trim();
-      const date = document.getElementById('txDateInput').value;
+      const date = document.getElementById('txDateInput').value.trim(); // Lee lo que escribiste
       const receipt = document.getElementById('txReceiptInput').value.trim();
 
       if (!acc.transactions) acc.transactions = [];
@@ -927,7 +901,7 @@
           tx.amount = amount;
           tx.category = category;
           tx.concept = concept;
-          tx.date = date;
+          tx.date = date; // Se guarda la fecha exacta introducida
           tx.receipt = receipt;
         }
       } else {
@@ -957,7 +931,6 @@
       }
     }
 
-    // MODAL RESPALDO & EXPORTACIÓN
     function openBackupModal() {
       document.getElementById('backupModal').classList.remove('hidden');
     }
