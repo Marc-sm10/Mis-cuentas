@@ -860,7 +860,6 @@
       form.reset();
 
       document.getElementById('txCurrencyPrefix').innerText = CURRENCY_SYMBOLS[acc.currency] || 'Q';
-      document.getElementById('txDateInput').value = new Date().toISOString().split('T')[0];
 
       const badge = document.getElementById('txTypeBadge');
       const btn = document.getElementById('txSubmitBtn');
@@ -874,7 +873,7 @@
           document.getElementById('txAmountInput').value = tx.amount;
           document.getElementById('txCategoryInput').value = tx.category || 'General';
           document.getElementById('txConceptInput').value = tx.concept;
-          document.getElementById('txDateInput').value = tx.date;
+          document.getElementById('txDateInput').value = tx.date || new Date().toISOString().split('T')[0];
           document.getElementById('txReceiptInput').value = tx.receipt || '';
 
           type = tx.type;
@@ -883,6 +882,7 @@
       } else {
         document.getElementById('txEditId').value = '';
         document.getElementById('txTypeInput').value = type;
+        document.getElementById('txDateInput').value = new Date().toISOString().split('T')[0];
         title.innerText = type === 'DEBIT' ? 'Registrar Débito / Gasto' : 'Registrar Ingreso / Acreditación';
       }
 
